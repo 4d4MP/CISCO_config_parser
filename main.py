@@ -16,48 +16,52 @@ def process_file(filename):
         try:
             with open(filename, 'r') as file:
                 data = file.read().splitlines()
+                for line in data:
+                    if "(config)#end" in line or "#write mem" in line or "#configure terminal" in line:
+                        data.remove(line)
                 for i in range(len(data)):
+                    j = i + 1
                     if data[i].startswith('Cisco IOS Software') and data[i-1].endswith('sh version'):
-                        j = i + 1
+                        
                         
                         while j < len(data):
                             general_pattern = re.compile(r".*b-.+#$")
-                            if general_pattern.match(data[j]):
+                            if "Cisco IOS Software" in data[j]:
+                                print("3======D")
                                 break
 
                             j += 1
                     
-                        
                         switch_pattern_1 = re.compile(r"sb-.+#$")
                         router_pattern_1 = re.compile(r"rb-.+#$")
-                        hostname = data[j].strip("#")
+                    
+                        hostname = data[j]
                         if switch_pattern_1.match(data[j]) or router_pattern_1.match(data[j]):
+                    
+                            print(f"i = {i}, j = {j}")
+                            
                             version = ""
                             serial = ""
                             model = ""
                             image = ""
+                            print("-----------------------------------")
                             for k in range(i, j):
+                                #print(data[k])
                                 if "Cisco IOS Software" in data[k]:
                                     version = data[k].split(",")[2].strip("Version ")
-                                    print(f"Version: {version}")
                                 if "Motherboard serial number" in data[k] and not router_pattern_1.match(data[j]):
                                     serial = {data[k].split(":")[-1].strip(" ").strip("{").strip("}").strip("'")}
-                                    print(f"Serial: {serial}")
                                 elif "License UDI:" in data[k] and router_pattern_1.match(data[j]):
                                     serial = data[k + 5][29:].strip(" ")
-                                    print(f"Serial: {serial}")
                                 if "K bytes of memory" in data[k]:
-                                    print(i+k)
                                     model = data[k].split(" ")[1]
-                                    print(f"Model: {model}")
                                 if "System image file is" in data[k]:
                                     image = data[k].split("is ")[-1].strip('"')
-                                    print(f"Image: {image}")
                             
+                            print(f"Hostname: {hostname}, Serial: {serial}, Version: {version}, Model: {model}, Image: {image}\n")
                             writer.writerow([hostname, serial, version, model, image])
-                                
-                        
-                        
+                             
+                    i += j                         
             pass
         except Exception as e:
             print(f"An error occurred while processing {filename}: {e} \n")
